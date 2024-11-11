@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
 from openai import OpenAI
+import re
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -35,6 +36,22 @@ def get_ai_response(question):
     )
     return response.choices[0].message.content.strip()
 
+def submit_answer(url, answer):
+    data = {
+        'username': os.getenv('APPUSERNAME'),
+        'password': os.getenv('PASSWORD'),
+        'answer': answer
+    }
+    
+    response = requests.post(url, data=data)
+    return response.text
+
+def find_flag(response_text):
+    flag_match = re.search(r'{{FLG:[^}]+}}', response_text)
+    if flag_match:
+        return flag_match.group(0)
+    return None
+
 def main():
     url = os.getenv('URL')
     
@@ -46,6 +63,14 @@ def main():
             print(question)
             answer = get_ai_response(question)
             print("Odpowiedź AI:", answer)
+
+            response = submit_answer(url, answer)
+            print("Odpowiedź serwera:", response)
+            flag = find_flag(response)
+            if flag:
+                print("Znaleziona flaga:", flag)
+            else:
+                print("Nie znaleziono flagi w odpowiedzi")
         else:
             print("Nie udało się znaleźć pytania.")
 
